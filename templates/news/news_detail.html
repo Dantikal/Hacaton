@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ news.title }} - Хакатон{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card shadow">
+            {% if news.image %}
+                <img src="{{ news.image.url }}" class="card-img-top" alt="{{ news.title }}">
+            {% endif %}
+            
+            <div class="card-body">
+                <h1 class="card-title">{{ news.title }}</h1>
+                
+                <div class="text-muted mb-4">
+                    <i class="fas fa-user"></i> {{ news.author.get_full_name|default:news.author.username }}
+                    <i class="fas fa-calendar ms-3"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                    {% if news.updated_at != news.created_at %}
+                        <i class="fas fa-edit ms-3"></i> Обновлено {{ news.updated_at|date:"d.m.Y H:i" }}
+                    {% endif %}
+                </div>
+                
+                <div class="card-text">
+                    {{ news.content|linebreaks }}
+                </div>
+                
+                {% if user.is_authenticated and user.role == 'admin' %}
+                    <div class="mt-4">
+                        <a href="{% url 'news:edit' news.pk %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'news:list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> К списку новостей
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

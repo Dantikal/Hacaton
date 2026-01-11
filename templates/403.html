@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ошибка 403 - Доступ запрещен{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow text-center">
+                <div class="card-body p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-lock fa-4x text-danger"></i>
+                    </div>
+                    
+                    <h2 class="mb-3">Ошибка 403</h2>
+                    <h4 class="text-muted mb-4">Доступ запрещен</h4>
+                    
+                    <p class="mb-4">
+                        У вас нет прав для доступа к этой странице. Пожалуйста, войдите в систему или обратитесь к администратору.
+                    </p>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'news:home' %}" class="btn btn-primary hover-lift">
+                            <i class="fas fa-home me-2"></i> На главную
+                        </a>
+                        <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary hover-lift">
+                            <i class="fas fa-sign-in-alt me-2"></i> Войти
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

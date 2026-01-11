@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Главная - Хакатон{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center py-5">
+    <div class="container py-4">
+        <h1 class="hero-title mb-3">
+            <i class="fas fa-rocket me-2"></i>
+            Добро пожаловать на Хакатон!
+        </h1>
+        <p class="hero-subtitle mb-4">Международный Мета-Научный Университет приглашает вас в мир инноваций и технологий</p>
+        
+        {% if not user.is_authenticated %}
+            <div class="fade-in-up d-flex flex-column flex-md-row justify-content-center align-items-center gap-3">
+                <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg hover-lift px-4">
+                    <i class="fas fa-user-plus me-2"></i> Регистрация
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-lg hover-lift px-4">
+                    <i class="fas fa-sign-in-alt me-2"></i> Войти
+                </a>
+            </div>
+        {% else %}
+            <div class="fade-in-up d-flex flex-column flex-md-row justify-content-center align-items-center flex-wrap gap-3">
+                {% if not user.team %}
+                    <a href="{% url 'teams:create' %}" class="btn btn-light btn-lg hover-lift px-4">
+                        <i class="fas fa-plus me-2"></i> Создать команду
+                    </a>
+                    <a href="{% url 'teams:list' %}" class="btn btn-outline-light btn-lg hover-lift px-4">
+                        <i class="fas fa-search me-2"></i> Найти команду
+                    </a>
+                {% else %}
+                    <a href="{% url 'teams:detail' user.team.pk %}" class="btn btn-light btn-lg hover-lift px-4">
+                        <i class="fas fa-users me-2"></i> Моя команда
+                    </a>
+                    <a href="{% url 'chat:team_chat' user.team.pk %}" class="btn btn-outline-light btn-lg hover-lift px-4">
+                        <i class="fas fa-comments me-2"></i> Чат команды
+                    </a>
+                {% endif %}
+                <a href="{% url 'accounts:profile' %}" class="btn btn-outline-light btn-lg hover-lift px-4 ms-md-3">
+                    <i class="fas fa-user me-2"></i> Профиль
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="gradient-text">
+                    <i class="fas fa-newspaper me-2"></i> Последние новости
+                </h2>
+                {% if user.is_authenticated and user.role == 'admin' %}
+                    <a href="{% url 'news:create' %}" class="btn btn-primary hover-lift">
+                        <i class="fas fa-plus me-2"></i> Добавить новость
+                    </a>
+                {% endif %}
+            </div>
+            
+            {% if news_list %}
+                {% for news in news_list %}
+                    <div class="card mb-4 news-card fade-in-up hover-lift">
+                        {% if news.image %}
+                            <img src="{{ news.image.url }}" class="card-img-top" alt="{{ news.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ news.title }}</h5>
+                            <p class="card-text">{{ news.content|truncatewords:20 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i> {{ news.author.get_full_name|default:news.author.username }}
+                                    <i class="fas fa-calendar ms-2 me-1"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                                </small>
+                                <a href="{% url 'news:detail' news.pk %}" class="btn btn-primary hover-lift">
+                                    Читать далее <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5 glass-effect rounded-3">
+                    <i class="fas fa-newspaper fa-4x text-muted mb-3"></i>
+                    <h3>Новостей пока нет</h3>
+                    <p class="text-muted">Следите за обновлениями!</p>
+                    
+                    {% if user.is_authenticated and user.role == 'admin' %}
+                        <a href="{% url 'news:create' %}" class="btn btn-primary hover-lift">
+                            <i class="fas fa-plus me-2"></i> Добавить первую новость
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4 glass-effect fade-in-up">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i> Статистика
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-users text-primary me-2"></i> Команды</span>
+                        <span class="badge bg-primary">{{ teams_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-user text-success me-2"></i> Участники</span>
+                        <span class="badge bg-success">{{ users_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-newspaper text-info me-2"></i> Новости</span>
+                        <span class="badge bg-info">{{ news_count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+                        
+            {% if user.is_authenticated %}
+                <div class="card glass-effect fade-in-up">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i> Быстрые действия
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if not user.team %}
+                                <a href="{% url 'teams:create' %}" class="btn btn-outline-primary hover-lift">
+                                    <i class="fas fa-plus me-2"></i> Создать команду
+                                </a>
+                                <a href="{% url 'teams:list' %}" class="btn btn-outline-success hover-lift">
+                                    <i class="fas fa-search me-2"></i> Найти команду
+                                </a>
+                            {% else %}
+                                <a href="{% url 'teams:detail' user.team.pk %}" class="btn btn-outline-primary hover-lift">
+                                    <i class="fas fa-users me-2"></i> Моя команда
+                                </a>
+                                <a href="{% url 'chat:team_chat' user.team.pk %}" class="btn btn-outline-success hover-lift">
+                                    <i class="fas fa-comments me-2"></i> Чат команды
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'news:schedule' %}" class="btn btn-outline-info hover-lift">
+                                <i class="fas fa-calendar me-2"></i> Расписание
+                            </a>
+                            {% if user.role == 'admin' %}
+                                <a href="/admin/" class="btn btn-outline-danger hover-lift">
+                                    <i class="fas fa-cog me-2"></i> Админ-панель
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

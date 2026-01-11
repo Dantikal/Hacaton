@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Расписание - Хакатон{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-calendar"></i> Расписание мероприятий
+    </h2>
+    {% if user.is_authenticated and user.role == 'admin' %}
+        <a href="{% url 'news:schedule_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить событие
+        </a>
+    {% endif %}
+</div>
+
+{% if events %}
+    <div class="timeline">
+        {% for event in events %}
+            <div class="schedule-item {% if event.is_important %}important{% endif %}">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">
+                                    {{ event.title }}
+                                    {% if event.is_important %}
+                                        <span class="badge bg-danger ms-2">Важно</span>
+                                    {% endif %}
+                                </h5>
+                                <p class="card-text">{{ event.description|linebreaks }}</p>
+                                {% if event.location %}
+                                    <p class="text-muted">
+                                        <i class="fas fa-map-marker-alt"></i> {{ event.location }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ event.start_time|date:"d.m.Y H:i" }}
+                                    {% if event.end_time %}
+                                        <br>
+                                        <i class="fas fa-clock"></i> {{ event.end_time|date:"d.m.Y H:i" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+        <h3>Мероприятий пока нет</h3>
+        <p class="text-muted">Расписание будет доступно ближе к дате хакатона</p>
+        
+        {% if user.is_authenticated and user.role == 'admin' %}
+            <a href="{% url 'news:schedule_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Добавить первое мероприятие
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.schedule-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.schedule-item::before {
+    content: '';
+    position: absolute;
+    left: -34px;
+    top: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #007bff;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.schedule-item.important::before {
+    background-color: #dc3545;
+}
+</style>
+{% endblock %}

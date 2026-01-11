@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ task.title }} - Хакатон{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>{{ task.title }}</h2>
+                    <div>
+                        <span class="badge bg-{{ task.status|status_color }} me-2">
+                            {{ task.get_status_display }}
+                        </span>
+                        <span class="priority-{{ task.priority }}">
+                            <i class="fas fa-flag"></i> {{ task.get_priority_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="card-text">{{ task.description|linebreaks }}</p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Исполнитель:</h6>
+                        {% if task.assigned_to %}
+                            {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                        {% else %}
+                            <span class="text-muted">Не назначен</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Команда:</h6>
+                        {% if task.team %}
+                            {{ task.team.name }}
+                        {% else %}
+                            <span class="text-muted">Не указана</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Срок выполнения:</h6>
+                        {% if task.deadline %}
+                            {{ task.deadline|date:"d.m.Y H:i" }}
+                        {% else %}
+                            <span class="text-muted">Не указан</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Создана:</h6>
+                        {{ task.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+                
+                {% if user.is_authenticated and user.role == 'admin' %}
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'news:task_edit' task.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'news:tasks' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> К списку задач
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.priority-high {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.priority-medium {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.priority-low {
+    color: #198754;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

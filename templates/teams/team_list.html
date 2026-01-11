@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Команды - Хакатон{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-users"></i> Команды
+    </h2>
+    {% if user.is_authenticated and not user.team %}
+        <a href="{% url 'teams:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Создать команду
+        </a>
+    {% endif %}
+</div>
+
+{% if teams %}
+    <div class="row">
+        {% for team in teams %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 team-card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            {{ team.name }}
+                            {% if team.leader == user %}
+                                <i class="fas fa-crown text-warning" title="Ваша команда"></i>
+                            {% endif %}
+                        </h5>
+                        
+                        {% if team.description %}
+                            <p class="card-text">{{ team.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-info">
+                                    <i class="fas fa-users"></i> {{ team.member_count }}/{{ team.max_members }}
+                                </span>
+                                {% if team.is_full %}
+                                    <span class="badge bg-danger">Команда заполнена</span>
+                                {% else %}
+                                    <span class="badge bg-success">Есть места</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-crown"></i> Лидер: {{ team.leader.get_full_name|default:team.leader.username }}
+                            </small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-info-circle"></i> Подробнее
+                            </a>
+                            
+                            {% if user.is_authenticated and not user.team and not team.is_full %}
+                                <a href="{% url 'teams:join' team.pk %}" class="btn btn-success">
+                                    <i class="fas fa-user-plus"></i> Присоединиться
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer text-muted">
+                        <small>
+                            <i class="fas fa-calendar"></i> Создана {{ team.created_at|date:"d.m.Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+        <h3>Команд пока нет</h3>
+        <p class="text-muted">Будьте первым, кто создаст команду!</p>
+        
+        {% if user.is_authenticated and not user.team %}
+            <a href="{% url 'teams:create' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> Создать первую команду
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if user.is_authenticated and user.team %}
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle"></i> 
+        Вы уже состоите в команде <strong><a href="{% url 'teams:detail' user.team.pk %}">{{ user.team.name }}</a></strong>.
+        Чтобы присоединиться к другой команде, сначала покиньте текущую.
+    </div>
+{% endif %}
+{% endblock %}

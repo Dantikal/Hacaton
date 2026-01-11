@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load news_filters %}
+
+{% block title %}Задачи - Хакатон{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-tasks"></i> Задачи
+    </h2>
+    {% if user.is_authenticated and user.role == 'admin' %}
+        <a href="{% url 'news:task_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить задачу
+        </a>
+    {% endif %}
+</div>
+
+{% if tasks %}
+    <div class="row">
+        {% for task in tasks %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 task-card {{ task.status }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title">{{ task.title }}</h5>
+                            <div>
+                                <span class="badge bg-{{ task.status|status_color }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text">{{ task.description|truncatewords:15 }}</p>
+                        
+                        <div class="mb-3">
+                            {% if task.assigned_to %}
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                                </small>
+                            {% endif %}
+                            
+                            {% if task.team %}
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-users"></i> {{ task.team.name }}
+                                </small>
+                            {% endif %}
+                            
+                            {% if task.deadline %}
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ task.deadline|date:"d.m.Y H:i" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="priority-{{ task.priority }}">
+                                <i class="fas fa-flag"></i> {{ task.get_priority_display }}
+                            </span>
+                            
+                            <a href="{% url 'news:task_detail' task.pk %}" class="btn btn-outline-primary btn-sm">
+                                Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-tasks fa-4x text-muted mb-3"></i>
+        <h3>Задач пока нет</h3>
+        <p class="text-muted">Администратор добавит задачи в ближайшее время</p>
+        
+        {% if user.is_authenticated and user.role == 'admin' %}
+            <a href="{% url 'news:task_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Добавить первую задачу
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<style>
+.task-card {
+    transition: transform 0.2s;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+}
+
+.task-card.todo {
+    border-left: 4px solid #6c757d;
+}
+
+.task-card.in_progress {
+    border-left: 4px solid #0dcaf0;
+}
+
+.task-card.done {
+    border-left: 4px solid #198754;
+}
+
+.priority-high {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.priority-medium {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.priority-low {
+    color: #198754;
+    font-weight: bold;
+}
+</style>
+
+{% comment %}
+Фильтр для статусов (нужно добавить в кастомный фильтр)
+{% endcomment %}

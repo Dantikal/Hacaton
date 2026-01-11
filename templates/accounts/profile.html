@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load news_filters %}
+
+{% block title %}Профиль {{ user_profile.username }} - Хакатон{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-body text-center">
+                {% if user_profile.profile.avatar %}
+                    <img src="{{ user_profile.profile.avatar.url }}" alt="Аватар" class="profile-avatar mb-3">
+                {% else %}
+                    <div class="profile-avatar mb-3 d-flex align-items-center justify-content-center bg-primary text-white">
+                        <i class="fas fa-user fa-4x"></i>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ user_profile.get_full_name|default:user_profile.username }}</h4>
+                <p class="text-muted">@{{ user_profile.username }}</p>
+                
+                <div class="mb-3">
+                    {% if user_profile.role == 'admin' %}
+                        <span class="badge bg-danger">
+                    {% else %}
+                        <span class="badge bg-primary">
+                    {% endif %}
+                        {{ user_profile.get_role_display }}
+                    </span>
+                </div>
+                
+                {% if user_profile.team %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-users"></i>
+                        <strong>Команда:</strong> 
+                        <a href="{% url 'teams:detail' user_profile.team.pk %}">{{ user_profile.team.name }}</a>
+                    </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Редактировать профиль
+                    </a>
+                    {% if user_profile.team %}
+                        <a href="{% url 'chat:team_chat' user_profile.team.pk %}" class="btn btn-success">
+                            <i class="fas fa-comments"></i> Чат команды
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if user_profile.profile.github_link or user_profile.profile.telegram_link or user_profile.profile.phone %}
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-link"></i> Контакты
+                    </h5>
+                    
+                    {% if user_profile.profile.github_link %}
+                        <div class="mb-2">
+                            <a href="{{ user_profile.profile.github_link }}" target="_blank" class="text-decoration-none">
+                                <i class="fab fa-github"></i> GitHub
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if user_profile.profile.telegram_link %}
+                        <div class="mb-2">
+                            <a href="{{ user_profile.profile.telegram_link }}" target="_blank" class="text-decoration-none">
+                                <i class="fab fa-telegram"></i> Telegram
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if user_profile.profile.phone %}
+                        <div class="mb-2">
+                            <i class="fas fa-phone"></i> {{ user_profile.profile.phone }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-user"></i> Информация о пользователе
+                </h5>
+                
+                <div class="row">
+                    <div class="col-sm-3"><strong>Имя:</strong></div>
+                    <div class="col-sm-9">{{ user_profile.get_full_name|default:'Не указано' }}</div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-sm-3"><strong>Email:</strong></div>
+                    <div class="col-sm-9">{{ user_profile.email }}</div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-sm-3"><strong>Дата регистрации:</strong></div>
+                    <div class="col-sm-9">{{ user_profile.created_at|date:"d.m.Y H:i" }}</div>
+                </div>
+                
+                {% if user_profile.skills %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-3"><strong>Навыки:</strong></div>
+                        <div class="col-sm-9">
+                            <div class="team-members">
+                                {% for skill in user_profile.skills|split_comma %}
+                                    <span class="member-badge">{{ skill|strip }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if user_profile.about %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-3"><strong>О себе:</strong></div>
+                        <div class="col-sm-9">{{ user_profile.about|linebreaks }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user_profile.team %}
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-users"></i> Моя команда
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>{{ user_profile.team.name }}</h6>
+                            {% if user_profile.team.description %}
+                                <p class="text-muted">{{ user_profile.team.description }}</p>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <strong>Участники ({{ user_profile.team.member_count }}/{{ user_profile.team.max_members }}):</strong>
+                                <div class="team-members mt-2">
+                                    {% for member in user_profile.team.members.all %}
+                                        <span class="member-badge">
+                                            {{ member.get_full_name|default:member.username }}
+                                            {% if member == user_profile.team.leader %}
+                                                <i class="fas fa-crown text-warning" title="Лидер"></i>
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                {% if user_profile.team.leader == user_profile %}
+                                    <span class="badge bg-warning text-dark">Лидер команды</span>
+                                {% else %}
+                                    <span class="badge bg-info">Участник</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'teams:detail' user_profile.team.pk %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-info-circle"></i> Подробнее
+                                </a>
+                                <a href="{% url 'chat:team_chat' user_profile.team.pk %}" class="btn btn-success">
+                                    <i class="fas fa-comments"></i> Чат
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5>Вы не состоите в команде</h5>
+                    <p class="text-muted">Создайте свою команду или присоединитесь к существующей</p>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'teams:create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Создать команду
+                        </a>
+                        <a href="{% url 'teams:list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> Найти команду
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Новости - Хакатон{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-newspaper"></i> Новости
+    </h2>
+    {% if user.is_authenticated and user.role == 'admin' %}
+        <a href="{% url 'news:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить новость
+        </a>
+    {% endif %}
+</div>
+
+{% if news_list %}
+    <div class="row">
+        {% for news in news_list %}
+            <div class="col-lg-8 offset-lg-2">
+                <div class="card mb-4 news-card">
+                    {% if news.image %}
+                        <img src="{{ news.image.url }}" class="card-img-top" alt="{{ news.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ news.title }}</h5>
+                        <p class="card-text">{{ news.content|truncatewords:50 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user"></i> {{ news.author.get_full_name|default:news.author.username }}
+                                <i class="fas fa-calendar ms-2"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                            </small>
+                            <a href="{% url 'news:detail' news.pk %}" class="btn btn-primary">
+                                Читать далее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    {% if is_paginated %}
+        <nav aria-label="Новости">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-newspaper fa-4x text-muted mb-3"></i>
+        <h3>Новостей пока нет</h3>
+        <p class="text-muted">Следите за обновлениями!</p>
+        
+        {% if user.is_authenticated and user.role == 'admin' %}
+            <a href="{% url 'news:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Добавить первую новость
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

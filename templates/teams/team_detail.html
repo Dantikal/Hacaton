@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load news_filters %}
+
+{% block title %}{{ team.name }} - Хакатон{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2>
+                            {{ team.name }}
+                            {% if team.leader == user %}
+                                <i class="fas fa-crown text-warning" title="Вы лидер этой команды"></i>
+                            {% endif %}
+                        </h2>
+                        <p class="text-muted">
+                            <i class="fas fa-crown"></i> Лидер: {{ team.leader.get_full_name|default:team.leader.username }}
+                        </p>
+                    </div>
+                    
+                    {% if is_leader %}
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'teams:edit' team.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i> Редактировать
+                            </a>
+                            <a href="{% url 'chat:team_chat' team.pk %}" class="btn btn-success">
+                                <i class="fas fa-comments"></i> Чат
+                            </a>
+                        </div>
+                    {% elif is_member %}
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'chat:team_chat' team.pk %}" class="btn btn-success">
+                                <i class="fas fa-comments"></i> Чат
+                            </a>
+                            <a href="{% url 'teams:leave' team.pk %}" class="btn btn-outline-danger" 
+                               onclick="return confirm('Вы уверены, что хотите покинуть команду?')">
+                                <i class="fas fa-sign-out-alt"></i> Покинуть
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if team.description %}
+                    <div class="mb-4">
+                        <h5>О команде</h5>
+                        <p>{{ team.description|linebreaks }}</p>
+                    </div>
+                {% endif %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-primary">{{ team.member_count }}</h3>
+                                <p class="mb-0">Участников</p>
+                                <small class="text-muted">из {{ team.max_members }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-success">
+                                    {% if team.is_full %}Заполнена{% else %}Есть места{% endif %}
+                                </h3>
+                                <p class="mb-0">Статус</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-info">{{ team.created_at|date:"d.m.Y" }}</h3>
+                                <p class="mb-0">Создана</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5>Участники команды</h5>
+                <div class="row">
+                    {% for member in team.members.all %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        {% if member.profile.avatar %}
+                                            <img src="{{ member.profile.avatar.url }}" alt="Аватар" 
+                                                 class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                {{ member.get_full_name|default:member.username }}
+                                                {% if member == team.leader %}
+                                                    <i class="fas fa-crown text-warning" title="Лидер"></i>
+                                                {% endif %}
+                                            </h6>
+                                            <small class="text-muted">@{{ member.username }}</small>
+                                            
+                                            {% if member.skills %}
+                                                <div class="mt-1">
+                                                    {% for skill in member.skills.split %}
+                                                        <span class="badge bg-light text-dark">{{ skill|strip }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12">
+                            <p class="text-muted">В команде пока нет участников кроме лидера.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        {% if is_leader and pending_invitations %}
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-clock"></i> Запросы на присоединение
+                    </h5>
+                    
+                    {% for invitation in pending_invitations %}
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ invitation.invited_user.get_full_name|default:invitation.invited_user.username }}</strong>
+                                    <br>
+                                    <small class="text-muted">@{{ invitation.invited_user.username }}</small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'teams:accept_invitation' invitation.pk %}" 
+                                       class="btn btn-success" title="Принять">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    <a href="{% url 'teams:decline_invitation' invitation.pk %}" 
+                                       class="btn btn-danger" title="Отклонить">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% if invitation.message %}
+                                <small class="text-muted">{{ invitation.message }}</small>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if not is_member and user.is_authenticated and not user.team %}
+            <div class="card shadow mb-4">
+                <div class="card-body text-center">
+                    {% if team.is_full %}
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>Команда заполнена</h5>
+                        <p class="text-muted">Нельзя присоединиться к команде, так как все места заняты.</p>
+                    {% else %}
+                        <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                        <h5>Присоединиться к команде</h5>
+                        <p class="text-muted">Станьте частью этой команды!</p>
+                        
+                        <a href="{% url 'teams:join' team.pk %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Присоединиться
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle"></i> Информация
+                </h5>
+                
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-calendar"></i>
+                        <strong>Создана:</strong> {{ team.created_at|date:"d.m.Y H:i" }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-users"></i>
+                        <strong>Участники:</strong> {{ team.member_count }}/{{ team.max_members }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-crown"></i>
+                        <strong>Лидер:</strong> {{ team.leader.get_full_name|default:team.leader.username }}
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Статус:</strong> 
+                        {% if team.is_active %}
+                            <span class="badge bg-success">Активна</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Неактивна</span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

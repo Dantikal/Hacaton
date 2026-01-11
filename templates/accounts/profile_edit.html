@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактирование профиля - Хакатон{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-edit fa-3x text-primary mb-3"></i>
+                    <h2>Редактирование профиля</h2>
+                    <p class="text-muted">Обновите свою информацию</p>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.avatar.id_for_label }}" class="form-label">
+                                <i class="fas fa-camera"></i> Аватар
+                            </label>
+                            {{ form.avatar }}
+                            {% if form.avatar.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.avatar.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.instance.avatar %}
+                                <div class="mt-2">
+                                    <img src="{{ form.instance.avatar.url }}" alt="Текущий аватар" class="img-thumbnail" style="max-width: 100px;">
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                <i class="fas fa-phone"></i> Телефон
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.phone.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.github_link.id_for_label }}" class="form-label">
+                            <i class="fab fa-github"></i> GitHub
+                        </label>
+                        {{ form.github_link }}
+                        {% if form.github_link.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.github_link.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.telegram_link.id_for_label }}" class="form-label">
+                            <i class="fab fa-telegram"></i> Telegram
+                        </label>
+                        {{ form.telegram_link }}
+                        {% if form.telegram_link.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.telegram_link.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Добавляем классы формы Bootstrap
+    const inputs = document.querySelectorAll('input[type="text"], input[type="url"], input[type="tel"], input[type="file"]');
+    inputs.forEach(function(input) {
+        if (input.type === 'file') {
+            input.classList.add('form-control');
+        } else {
+            input.classList.add('form-control');
+        }
+    });
+});
+</script>
+{% endblock %}
