@@ -27,7 +27,7 @@
                 <div id="chat-container" class="chat-container" data-team-id="{{ team.pk }}">
                     <div id="messages-container">
                         {% for message in messages %}
-                            <div class="chat-message {% if message.author == user %}own{% else %}other{% %}">
+                            <div class="chat-message {% if message.author == user %}own{% else %}other{% endif %}">
                                 <div class="message-author">{{ message.author.get_full_name|default:message.author.username }}</div>
                                 <div class="message-content">{{ message.content|linebreaksbr }}</div>
                                 <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
