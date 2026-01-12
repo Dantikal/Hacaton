@@ -166,6 +166,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Функция для добавления нового сообщения
     function addMessage(message) {
+        // Проверяем, нет ли уже такого сообщения
+        const existingMessages = messagesContainer.querySelectorAll('.chat-message');
+        for (let existingMsg of existingMessages) {
+            const content = existingMsg.querySelector('.message-content').textContent;
+            const time = existingMsg.querySelector('.message-time').textContent;
+            if (content === message.content.replace(/<br>/g, '\n') && time === message.created_at) {
+                return; // Сообщение уже существует
+            }
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${message.author === currentUser ? 'own' : 'other'}`;
         
