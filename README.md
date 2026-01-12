@@ -144,6 +144,91 @@ python manage.py runserver
 
 ## Деплоймент
 
+### Heroku Deployment
+
+1. Установите Heroku CLI и войдите:
+```bash
+heroku login
+```
+
+2. Создайте Heroku приложение:
+```bash
+heroku create your-app-name
+```
+
+3. Установите переменные окружения:
+```bash
+heroku config:set SECRET_KEY=your-secret-key-here
+heroku config:set ALLOWED_HOSTS=your-app-name.herokuapp.com
+heroku config:set DJANGO_SETTINGS_MODULE=hackathon_site.production
+```
+
+4. Добавьте PostgreSQL addon:
+```bash
+heroku addons:create heroku-postgresql:hobby-dev
+```
+
+5. Отправьте код в Heroku:
+```bash
+git add .
+git commit -m "Deploy to Heroku"
+git push heroku main
+```
+
+6. Запустите миграции на Heroku:
+```bash
+heroku run python manage.py migrate
+```
+
+7. Создайте суперпользователя на Heroku:
+```bash
+heroku run python manage.py createsuperuser
+```
+
+### Переменные окружения
+
+Скопируйте `.env.example` в `.env` и настройте:
+
+- `SECRET_KEY`: Секретный ключ Django
+- `ALLOWED_HOSTS`: Разделенный запятыми список разрешенных хостов
+- `DATABASE_URL`: Строка подключения к PostgreSQL
+- Настройки email (опционально)
+
+### Настройки для продакшена
+
+Проект использует специальные настройки для продакшена в `hackathon_site/production.py`:
+
+- Оптимизации безопасности
+- Конфигурация базы данных через переменные окружения
+- Отдача статических файлов через Whitenoise
+- Конфигурация логирования
+- Настройки SSL/HTTPS
+
+### Зависимости для продакшена
+
+- Django 4.2.7
+- Pillow 10.1.0
+- python-decouple 3.8
+- dj-database-url 2.1.0
+- gunicorn 21.2.0
+- psycopg2-binary 2.9.9
+- whitenoise 6.6.0
+
+### Альтернативные варианты деплоя
+
+**PythonAnywhere:**
+1. Загрузите код через Git
+2. Настройте виртуальное окружение
+3. Установите зависимости
+4. Настройте WSGI приложение
+5. Настройте статические файлы
+
+**DigitalOcean/App Platform:**
+1. Создайте новое приложение
+2. Подключите GitHub репозиторий
+3. Настройте переменные окружения
+4. Выберите план и разверните
+
 Для продакшн развертывания рекомендуется:
 1. Использовать PostgreSQL вместо SQLite
 2. Настроить Nginx + Gunicorn
