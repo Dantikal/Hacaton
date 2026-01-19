@@ -5,7 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.db import transaction
-from .models import Team, TeamInvitation
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+from .models import Team, TeamInvitation, Message
 from .forms import TeamCreateForm, TeamUpdateForm
 
 class TeamListView(ListView):
@@ -137,3 +142,108 @@ def InvitationDeclineView(request, invitation_id):
     invitation.save()
     messages.success(request, f'Приглашение для {invitation.invited_user.username} отклонено')
     return redirect('teams:detail', pk=invitation.team.pk)
+
+@login_required
+@require_GET
+def get_messages(request, team_id):
+    """API для получения сообщений чата"""
+    try:
+        team = get_object_or_404(Team, pk=team_id)
+        
+        # Проверяем, что пользователь состоит в команде
+        if request.user.team != team:
+            return JsonResponse({'error': 'Вы не состоите в этой команде'}, status=403)
+        
+        # Пытаемся получить сообщения
+        try:
+            messages_list = Message.objects.filter(team=team).select_related('author').order_by('created_at')
+            
+            messages_data = []
+            for msg in messages_list:
+                messages_data.append({
+                    'id': msg.id,
+                    'author': msg.author.get_full_name() or msg.author.username,
+                    'content': msg.content,
+                    'created_at': msg.created_at.strftime("%H:%M"),
+                    'is_own': msg.author == request.user,
+                })
+            
+            print(f"DEBUG: Found {len(messages_data)} messages for team {team_id}")  # Для отладки
+            return JsonResponse({'messages': messages_data})
+            
+        except Exception as e:
+            # Если есть проблемы с базой
+            print(f"DEBUG: Error getting messages: {e}")  # Для отладки
+            return JsonResponse({'messages': [], 'debug': str(e)})
+            
+    except Exception as e:
+        print(f"DEBUG: General error: {e}")  # Для отладки
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def team_chat(request, pk):
+    """View для отображения чата команды"""
+    team = get_object_or_404(Team, pk=pk)
+    
+    # Проверяем, что пользователь состоит в команде
+    if request.user.team != team:
+        messages.error(request, 'Вы не состоите в этой команде')
+        return redirect('teams:detail', pk=team.pk)
+    
+    # Получаем сообщения для отображения в шаблоне
+    try:
+        chat_messages = Message.objects.filter(team=team).select_related('author').order_by('created_at')
+    except Exception as e:
+        # Если таблицы сообщений нет
+        print(f"DEBUG: Error getting messages: {e}")
+        chat_messages = []
+    
+    return render(request, 'teams/team_chat.html', {
+        'team': team,
+        'messages': chat_messages,
+    })
+
+@login_required
+@require_POST
+@csrf_exempt
+def send_message(request):
+    """API для отправки сообщения"""
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        team_id = data.get('team_id')
+        
+        if not content:
+            return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
+        
+        if not team_id:
+            return JsonResponse({'error': 'Не указана команда'}, status=400)
+        
+        team = get_object_or_404(Team, pk=team_id)
+        
+        # Проверяем, что пользователь состоит в команде
+        if request.user.team != team:
+            return JsonResponse({'error': 'Вы не состоите в этой команде'}, status=403)
+        
+        # Создаем сообщение
+        message = Message.objects.create(
+            team=team,
+            author=request.user,
+            content=content
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': {
+                'id': message.id,
+                'author': message.author.get_full_name() or message.author.username,
+                'content': message.content,
+                'created_at': message.created_at.strftime("%H:%M"),
+                'is_own': True,
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

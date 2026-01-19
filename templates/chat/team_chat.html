@@ -1,268 +1,643 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Чат команды {{ team.name }} - Хакатон{% endblock %}
+{% block title %}Чат команды {{ team.name }}{% endblock %}
 
 {% block content %}
-<meta name="current-user" content="{{ user.username }}">
-
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mb-0">
-                            <i class="fas fa-comments"></i> Чат команды "{{ team.name }}"
-                        </h4>
-                        <small>Участники: {{ team.member_count }}</small>
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Боковая панель с участниками -->
+        <div class="col-lg-3 col-xl-2 d-none d-lg-block">
+            <div class="card sticky-top" style="top: 20px; height: calc(100vh - 40px);">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-people-fill me-2"></i>Участники
+                        </h6>
+                        <span class="badge bg-light text-primary">{{ team.members.count }}</span>
                     </div>
-                    <a href="{% url 'teams:detail' team.pk %}" class="btn btn-light">
-                        <i class="fas fa-arrow-left"></i> К команде
-                    </a>
                 </div>
-            </div>
-            
-            <div class="card-body p-0">
-                <div id="chat-container" class="chat-container" data-team-id="{{ team.pk }}">
-                    <div id="messages-container">
-                        {% for message in messages %}
-                            <div class="chat-message {% if message.author == user %}own{% else %}other{% endif %}">
-                                <div class="message-author">{{ message.author.get_full_name|default:message.author.username }}</div>
-                                <div class="message-content">{{ message.content|linebreaksbr }}</div>
-                                <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
-                            </div>
-                        {% empty %}
-                            <div class="text-center text-muted py-5">
-                                <i class="fas fa-comments fa-3x mb-3"></i>
-                                <p>Пока нет сообщений. Начните общение!</p>
+                <div class="card-body p-3 overflow-auto">
+                    <div class="list-group list-group-flush">
+                        {% for member in team.members.all %}
+                            <div class="list-group-item list-group-item-action border-0 px-0 py-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <div class="avatar-placeholder bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                            {{ member.username|first|upper }}
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-0">{{ member.username }}</h6>
+                                                <small class="text-muted">
+                                                    {% if member == team.leader %}
+                                                        <span class="text-primary">
+                                                            <i class="bi bi-star-fill me-1"></i>Лидер
+                                                        </span>
+                                                    {% else %}
+                                                        Участник
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            {% if member == request.user %}
+                                                <span class="badge bg-secondary">Вы</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
                 </div>
-                
-                <div class="border-top p-3">
-                    <form id="message-form" data-team-id="{{ team.pk }}">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <input type="text" id="message-content" class="form-control" 
-                                   placeholder="Введите сообщение..." maxlength="1000" required>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Отправить
+                <div class="card-footer bg-light">
+                    <a href="{% url 'chat:list' %}" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-arrow-left me-1"></i> Назад к чатам
+                    </a>
+                    <a href="{% url 'teams:detail' team.id %}" class="btn btn-sm btn-outline-secondary w-100">
+                        <i class="bi bi-info-circle me-1"></i> Инфо о команде
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основной контент - чат -->
+        <div class="col-lg-9 col-xl-10">
+            <!-- Заголовок чата -->
+            <div class="card mb-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div>
+                                <h1 class="h4 mb-0">
+                                    <i class="bi bi-chat-left-text-fill text-primary me-2"></i>
+                                    Чат команды <strong>"{{ team.name }}"</strong>
+                                </h1>
+                                <p class="text-muted mb-0 small">
+                                    <span id="onlineCount">{{ team.members.count }}</span> участников
+                                </p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="scrollToBottom" title="Вниз">
+                                <i class="bi bi-arrow-down"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn" title="Обновить">
+                                <i class="bi bi-arrow-clockwise"></i>
                             </button>
                         </div>
-                    </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Контейнер сообщений -->
+            <div class="card shadow-lg" style="height: 70vh;">
+                <div class="card-body p-0 d-flex flex-column">
+                    <!-- Сообщения -->
+                    <div id="messagesContainer" class="flex-grow-1 overflow-auto p-4" 
+                         data-team-id="{{ team.id }}"
+                         data-current-user="{{ request.user.username }}">
+                        <div class="text-center py-5" id="loadingIndicator">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка сообщений...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Загрузка сообщений...</p>
+                        </div>
+                        
+                        <div id="noMessages" class="text-center py-5 d-none">
+                            <div class="mb-3">
+                                <i class="bi bi-chat-dots fs-1 text-muted"></i>
+                            </div>
+                            <h5 class="text-muted">Пока нет сообщений</h5>
+                            <p class="text-muted">Начните общение первым!</p>
+                        </div>
+                        
+                        <div id="messagesList"></div>
+                    </div>
+
+                    <!-- Форма отправки сообщения -->
+                    <div class="border-top p-3 bg-light">
+                        <form id="messageForm" class="message-form">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <textarea id="messageInput" 
+                                       class="form-control" 
+                                       placeholder="Введите сообщение..." 
+                                       maxlength="1000"
+                                       rows="1"
+                                       style="resize: none;"
+                                       required></textarea>
+                                
+                                <button type="submit" class="btn btn-primary" id="sendButton">
+                                    <i class="bi bi-send"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2 d-flex justify-content-between">
+                                <small class="text-muted">
+                                    <span id="charCount">0</span>/1000 символов
+                                </small>
+                                <small class="text-muted">
+                                    Enter для отправки, Shift+Enter для новой строки
+                                </small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer bg-light py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Чат доступен только участникам команды
+                        </small>
+                        <small class="text-muted" id="connectionStatus">
+                            <i class="bi bi-circle-fill text-success me-1"></i>
+                            <span id="statusText">Подключено</span>
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_css %}
 <style>
 .chat-container {
-    height: 500px;
-    overflow-y: auto;
-    padding: 1rem;
-    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
-.chat-message {
+.messages-container {
+    background: #f8f9fa;
+}
+
+.message-bubble {
     margin-bottom: 1rem;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    max-width: 80%;
+    max-width: 70%;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-bubble.current-user {
+    margin-left: auto;
+}
+
+.message-content {
+    padding: 10px 15px;
+    border-radius: 18px;
+    position: relative;
     word-wrap: break-word;
 }
 
-.chat-message.own {
-    background-color: #007bff;
+.message-bubble:not(.current-user) .message-content {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-top-left-radius: 4px;
+}
+
+.message-bubble.current-user .message-content {
+    background: #0d6efd;
     color: white;
-    margin-left: auto;
-    text-align: right;
+    border-top-right-radius: 4px;
 }
 
-.chat-message.other {
-    background-color: #e9ecef;
-    color: #212529;
+.message-header {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    padding: 0 5px;
 }
 
-.chat-message.own .message-author {
-    color: rgba(255, 255, 255, 0.8);
+.message-bubble:not(.current-user) .message-header {
+    color: #6c757d;
 }
 
-.chat-message.other .message-author {
-    color: #007bff;
-    font-weight: bold;
+.message-bubble.current-user .message-header {
+    color: #495057;
 }
 
 .message-time {
     font-size: 0.75rem;
     opacity: 0.7;
-    margin-top: 0.25rem;
 }
 
-.message-content {
-    margin: 0.25rem 0;
-    line-height: 1.4;
+.message-edited {
+    font-size: 0.75rem;
+    font-style: italic;
+    margin-top: 4px;
 }
 
-/* Стили для прокрутки */
-.chat-container::-webkit-scrollbar {
+.avatar-placeholder {
+    font-weight: 600;
+}
+
+/* Адаптивный textarea */
+#messageInput {
+    min-height: 44px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* Кастомный скроллбар */
+#messagesContainer::-webkit-scrollbar {
     width: 6px;
 }
 
-.chat-container::-webkit-scrollbar-track {
+#messagesContainer::-webkit-scrollbar-track {
     background: #f1f1f1;
-    border-radius: 3px;
 }
 
-.chat-container::-webkit-scrollbar-thumb {
+#messagesContainer::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 3px;
 }
 
-.chat-container::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+#messagesContainer::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
 }
 
-/* Анимация появления новых сообщений */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.chat-message {
-    animation: slideInUp 0.3s ease-out;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .chat-message {
-        max-width: 95%;
+/* Мобильная версия */
+@media (max-width: 992px) {
+    .card {
+        height: 60vh !important;
     }
     
-    .chat-container {
-        height: 400px;
+    .message-bubble {
+        max-width: 85%;
     }
 }
 </style>
+{% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chatContainer = document.getElementById('chat-container');
-    const messagesContainer = document.getElementById('messages-container');
-    const messageForm = document.getElementById('message-form');
-    const messageInput = document.getElementById('message-content');
+class TeamChat {
+    constructor() {
+        // Элементы DOM
+        this.container = document.getElementById('messagesContainer');
+        this.messagesList = document.getElementById('messagesList');
+        this.messageForm = document.getElementById('messageForm');
+        this.messageInput = document.getElementById('messageInput');
+        this.loadingIndicator = document.getElementById('loadingIndicator');
+        this.noMessages = document.getElementById('noMessages');
+        this.charCount = document.getElementById('charCount');
+        
+        // Данные
+        this.teamId = this.container.dataset.teamId;
+        this.currentUser = this.container.dataset.currentUser;
+        
+        // Состояние
+        this.messages = new Map(); // Храним сообщения по ID
+        this.isLoading = false;
+        this.isSending = false;
+        this.lastMessageId = 0;
+        this.autoRefresh = null;
+        
+        // Инициализация
+        this.init();
+    }
     
-    // Прокрутка вниз при загрузке
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    init() {
+        this.bindEvents();
+        this.loadMessages(true); // Первоначальная загрузка
+        this.startAutoRefresh();
+    }
     
-    // Функция для добавления нового сообщения
-    function addMessage(message) {
-        // Проверяем, нет ли уже такого сообщения
-        const existingMessages = messagesContainer.querySelectorAll('.chat-message');
-        for (let existingMsg of existingMessages) {
-            const content = existingMsg.querySelector('.message-content').textContent;
-            const time = existingMsg.querySelector('.message-time').textContent;
-            if (content === message.content.replace(/<br>/g, '\n') && time === message.created_at) {
-                return; // Сообщение уже существует
+    bindEvents() {
+        // Отправка сообщения
+        this.messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.sendMessage();
+        });
+        
+        // Обработка ввода текста
+        this.messageInput.addEventListener('input', () => {
+            this.updateCharCount();
+            this.autoResizeTextarea();
+        });
+        
+        // Обработка Enter/Shift+Enter
+        this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (this.messageInput.value.trim()) {
+                    this.sendMessage();
+                }
             }
+        });
+        
+        // Кнопки управления
+        document.getElementById('scrollToBottom')?.addEventListener('click', () => {
+            this.scrollToBottom(true);
+        });
+        
+        document.getElementById('refreshBtn')?.addEventListener('click', () => {
+            this.loadMessages(false);
+        });
+        
+        // Автоматическая прокрутка при скролле
+        this.container.addEventListener('scroll', () => {
+            this.handleScroll();
+        });
+        
+        // Обновление при возвращении на вкладку
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.loadMessages(false);
+            }
+        });
+    }
+    
+    async loadMessages(isInitial = false) {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        if (isInitial) {
+            this.showLoading(true);
         }
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${message.author === currentUser ? 'own' : 'other'}`;
+        try {
+            const response = await fetch(`/chat/api/messages/${this.teamId}/?last_id=${this.lastMessageId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.processMessages(data.messages || [], isInitial);
+            this.updateConnectionStatus(true);
+            
+        } catch (error) {
+            console.error('Ошибка загрузки сообщений:', error);
+            this.updateConnectionStatus(false);
+            
+            if (isInitial) {
+                this.showError();
+            }
+        } finally {
+            this.isLoading = false;
+            if (isInitial) {
+                this.showLoading(false);
+            }
+        }
+    }
+    
+    processMessages(newMessages, isInitial) {
+        if (!newMessages || newMessages.length === 0) {
+            if (isInitial && this.messages.size === 0) {
+                this.noMessages.classList.remove('d-none');
+            }
+            return;
+        }
         
-        messageDiv.innerHTML = `
-            <div class="message-author">${message.author}</div>
-            <div class="message-content">${message.content.replace(/\n/g, '<br>')}</div>
-            <div class="message-time">${message.created_at}</div>
+        this.noMessages.classList.add('d-none');
+        
+        // Фильтруем новые сообщения
+        const messagesToAdd = [];
+        newMessages.forEach(msg => {
+            if (!this.messages.has(msg.id)) {
+                this.messages.set(msg.id, msg);
+                messagesToAdd.push(msg);
+                
+                // Обновляем последний ID
+                if (msg.id > this.lastMessageId) {
+                    this.lastMessageId = msg.id;
+                }
+            }
+        });
+        
+        if (messagesToAdd.length > 0) {
+            this.renderMessages(messagesToAdd, isInitial);
+        }
+    }
+    
+    renderMessages(messages, isInitial) {
+        // Сортируем по ID
+        messages.sort((a, b) => a.id - b.id);
+        
+        // Добавляем в DOM
+        messages.forEach(msg => {
+            const element = this.createMessageElement(msg);
+            this.messagesList.appendChild(element);
+        });
+        
+        // Прокручиваем вниз только если:
+        // 1. Это первая загрузка
+        // 2. Пользователь уже внизу
+        if (isInitial || this.isUserAtBottom()) {
+            this.scrollToBottom(false);
+        }
+    }
+    
+    createMessageElement(message) {
+        const isCurrentUser = message.author === this.currentUser;
+        const className = isCurrentUser ? 'message-bubble current-user' : 'message-bubble';
+        
+        const div = document.createElement('div');
+        div.className = className;
+        div.dataset.messageId = message.id;
+        
+        div.innerHTML = `
+            <div class="message-header d-flex justify-content-between">
+                <strong>${isCurrentUser ? 'Вы' : this.escapeHtml(message.author)}</strong>
+                <span class="message-time">${message.created_at}</span>
+            </div>
+            <div class="message-content">
+                <div class="message-text">${this.escapeHtml(message.content)}</div>
+                ${message.is_edited ? '<div class="message-edited"><i class="bi bi-pencil"></i> изменено</div>' : ''}
+            </div>
         `;
         
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return div;
     }
     
-    // Обработка отправки формы
-    messageForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    async sendMessage() {
+        const content = this.messageInput.value.trim();
         
-        const content = messageInput.value.trim();
-        if (!content) return;
-        
-        const teamId = messageForm.dataset.teamId;
-        
-        fetch('/chat/api/send/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                content: content,
-                team_id: teamId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                messageInput.value = '';
-                addMessage(data.message);
-            } else {
-                alert('Ошибка отправки сообщения: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error sending message:', error);
-            alert('Ошибка отправки сообщения');
-        });
-    });
-    
-    // Функция для получения CSRF токена
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+        if (!content || this.isSending) {
+            return;
         }
-        return cookieValue;
+        
+        this.isSending = true;
+        const sendButton = document.getElementById('sendButton');
+        if (sendButton) sendButton.disabled = true;
+        
+        try {
+            const response = await fetch('/chat/api/send/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCsrfToken()
+                },
+                body: JSON.stringify({
+                    content: content,
+                    team_id: parseInt(this.teamId)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Очищаем поле ввода
+                this.messageInput.value = '';
+                this.updateCharCount();
+                this.autoResizeTextarea();
+                
+                // Добавляем сообщение
+                this.processMessages([data.message], false);
+                
+                // Прокручиваем вниз
+                this.scrollToBottom(true);
+                
+                this.updateConnectionStatus(true);
+            } else {
+                this.showAlert(data.error || 'Ошибка отправки', 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Ошибка отправки:', error);
+            this.showAlert('Ошибка соединения', 'danger');
+            this.updateConnectionStatus(false);
+        } finally {
+            this.isSending = false;
+            if (sendButton) sendButton.disabled = false;
+            this.messageInput.focus();
+        }
     }
     
-    // Обновление чата каждые 5 секунд
-    setInterval(function() {
-        const teamId = chatContainer.dataset.teamId;
-        
-        fetch(`/chat/api/messages/${teamId}/`)
-            .then(response => response.json())
-            .then(data => {
-                const currentMessages = Array.from(messagesContainer.querySelectorAll('.chat-message'));
-                const currentCount = currentMessages.length;
-                
-                if (data.messages.length > currentCount) {
-                    // Добавляем только новые сообщения
-                    for (let i = currentCount; i < data.messages.length; i++) {
-                        addMessage(data.messages[i]);
-                    }
-                }
-            })
-            .catch(error => console.error('Error updating chat:', error));
-    }, 5000);
+    // Вспомогательные методы
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
     
-    // Фокус на поле ввода
-    messageInput.focus();
+    getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+    
+    scrollToBottom(instant = false) {
+        if (instant) {
+            this.container.scrollTop = this.container.scrollHeight;
+        } else {
+            this.container.scrollTo({
+                top: this.container.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
+    
+    isUserAtBottom() {
+        const threshold = 100;
+        return this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight <= threshold;
+    }
+    
+    handleScroll() {
+        // Можно добавить подгрузку истории при прокрутке вверх
+    }
+    
+    updateCharCount() {
+        const length = this.messageInput.value.length;
+        this.charCount.textContent = length;
+        
+        if (length > 900) {
+            this.charCount.classList.add('text-warning');
+        } else {
+            this.charCount.classList.remove('text-warning');
+        }
+    }
+    
+    autoResizeTextarea() {
+        const textarea = this.messageInput;
+        textarea.style.height = 'auto';
+        const newHeight = Math.min(textarea.scrollHeight, 120);
+        textarea.style.height = newHeight + 'px';
+    }
+    
+    updateConnectionStatus(connected) {
+        const status = document.getElementById('connectionStatus');
+        if (!status) return;
+        
+        if (connected) {
+            status.innerHTML = `
+                <i class="bi bi-circle-fill text-success me-1"></i>
+                <span id="statusText">Подключено</span>
+            `;
+        } else {
+            status.innerHTML = `
+                <i class="bi bi-circle-fill text-danger me-1"></i>
+                <span id="statusText">Нет соединения</span>
+            `;
+        }
+    }
+    
+    showLoading(show) {
+        if (show) {
+            this.loadingIndicator.style.display = 'block';
+        } else {
+            this.loadingIndicator.style.display = 'none';
+        }
+    }
+    
+    showError() {
+        this.loadingIndicator.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                <p class="mt-2 text-danger">Не удалось загрузить сообщения</p>
+                <button onclick="location.reload()" class="btn btn-sm btn-outline-primary mt-2">
+                    Обновить страницу
+                </button>
+            </div>
+        `;
+    }
+    
+    showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+    
+    startAutoRefresh() {
+        this.stopAutoRefresh();
+        
+        // Обновляем каждые 15 секунд
+        this.autoRefresh = setInterval(() => {
+            if (!document.hidden && !this.isLoading) {
+                this.loadMessages(false);
+            }
+        }, 15000);
+    }
+    
+    stopAutoRefresh() {
+        if (this.autoRefresh) {
+            clearInterval(this.autoRefresh);
+            this.autoRefresh = null;
+        }
+    }
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    new TeamChat();
 });
 </script>
-{% endblock %}
 {% endblock %}

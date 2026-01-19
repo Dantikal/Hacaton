@@ -91,6 +91,7 @@ def SendMessageView(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+# ИСПРАВЛЕНО: одна @ вместо двух @@
 @login_required
 def GetMessagesView(request, team_id):
     team = get_object_or_404(Team, id=team_id)
@@ -100,9 +101,23 @@ def GetMessagesView(request, team_id):
     
     chat_room, created = ChatRoom.objects.get_or_create(team=team)
     
-    messages = Message.objects.filter(
-        chat_room=chat_room
-    ).select_related('author').order_by('created_at')
+    # Получаем параметр last_id для оптимизации
+    last_id = request.GET.get('last_id', 0)
+    try:
+        last_id = int(last_id)
+    except:
+        last_id = 0
+    
+    # Загружаем только новые сообщения
+    if last_id > 0:
+        messages = Message.objects.filter(
+            chat_room=chat_room,
+            id__gt=last_id
+        ).select_related('author').order_by('id')
+    else:
+        messages = Message.objects.filter(
+            chat_room=chat_room
+        ).select_related('author').order_by('id')
     
     messages_data = [{
         'id': msg.id,

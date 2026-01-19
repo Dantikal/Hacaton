@@ -30,3 +30,21 @@ class TeamInvitation(models.Model):
     
     def __str__(self):
         return f"Invitation to {self.invited_user.username} for {self.team.name}"
+
+
+# teams/models.py - добавьте в конец файла
+class Message(models.Model):
+    id = models.AutoField(primary_key=True)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='messages')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='messages')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.author.username}: {self.content[:50]}"
+    
+    class Meta:
+        ordering = ['created_at']
+        
+    def get_author_display_name(self):
+        return self.author.get_full_name() or self.author.username

@@ -1,29 +1,315 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Доступ запрещен - Хакатон{% endblock %}
+{% block title %}Доступ запрещен{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow text-center">
-            <div class="card-body p-5">
-                <i class="fas fa-lock fa-4x text-danger mb-4"></i>
-                <h2>Доступ запрещен</h2>
-                <p class="text-muted mb-4">
-                    У вас нет доступа к чату этой команды. Только участники команды могут просматривать и отправлять сообщения.
-                </p>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Карточка с сообщением об ошибке -->
+            <div class="card border-danger shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-shield-lock fs-3 me-3"></i>
+                        <div>
+                            <h1 class="h4 mb-0">Доступ запрещен</h1>
+                            <p class="mb-0 small opacity-75">Ошибка 403</p>
+                        </div>
+                    </div>
+                </div>
                 
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="{% url 'teams:list' %}" class="btn btn-primary">
-                        <i class="fas fa-users"></i> Найти команду
-                    </a>
-                    <a href="{% url 'news:home' %}" class="btn btn-secondary">
-                        <i class="fas fa-home"></i> На главную
-                    </a>
+                <div class="card-body text-center py-5">
+                    <!-- Иконка -->
+                    <div class="mb-4">
+                        <div class="access-denied-icon mx-auto">
+                            <i class="bi bi-person-x-fill text-danger"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Основное сообщение -->
+                    <h2 class="h3 mb-3">Вы не можете получить доступ к этому чату</h2>
+                    
+                    <p class="lead text-muted mb-4">
+                        Этот чат доступен только для участников команды.
+                        Вы не являетесь участником команды, которой принадлежит этот чат.
+                    </p>
+                    
+                    <!-- Пояснительная информация -->
+                    <div class="alert alert-warning mb-4 text-start">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="alert-heading">Почему это произошло?</h6>
+                                <ul class="mb-0">
+                                    <li>Вы не состоите в этой команде</li>
+                                    <li>Вы были удалены из команды</li>
+                                    <li>Команда была удалена или заблокирована</li>
+                                    <li>Ссылка на чат устарела</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ваша текущая команда -->
+                    {% if user.team %}
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-person-check me-2"></i>
+                                    Ваша текущая команда
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ user.team.name }}</h6>
+                                        <p class="text-muted mb-0 small">
+                                            Участников: {{ user.team.members.count }}
+                                            {% if user.team.leader == user %}
+                                                <span class="badge bg-primary ms-2">Лидер</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <a href="{% url 'chat:team_chat' user.team.id %}" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="bi bi-arrow-right me-1"></i> Перейти в ваш чат
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Кнопки действий -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-center mt-4">
+                        {% if user.team %}
+                            <a href="{% url 'chat:list' %}" class="btn btn-primary">
+                                <i class="bi bi-chat-left-text me-1"></i> Вернуться к моим чатам
+                            </a>
+                        {% else %}
+                            <a href="{% url 'teams:list' %}" class="btn btn-primary">
+                                <i class="bi bi-search me-1"></i> Найти команду
+                            </a>
+                            <a href="{% url 'teams:create' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-plus-circle me-1"></i> Создать команду
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'news:home' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-house me-1"></i> На главную
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Футер с дополнительной информацией -->
+                <div class="card-footer bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Если вы считаете, что это ошибка, обратитесь к администратору
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <a href="{% url 'accounts:profile' %}" class="text-decoration-none small">
+                                <i class="bi bi-person-circle me-1"></i>
+                                Ваш профиль: {{ user.username }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Дополнительная информация -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-question-circle text-primary me-2"></i>
+                                Как присоединиться к команде?
+                            </h5>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    Найдите команду в списке
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    Отправьте заявку на вступление
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    Дождитесь подтверждения от лидера
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-lightbulb text-warning me-2"></i>
+                                Нужна помощь?
+                            </h5>
+                            <p class="card-text">
+                                Если у вас возникли проблемы с доступом к чатам или командам, 
+                                обратитесь за помощью:
+                            </p>
+                            <div class="d-grid gap-2">
+                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-envelope me-1"></i> Написать администратору
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-file-text me-1"></i> Справка по командам
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.access-denied-icon {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border: 3px solid rgba(220, 53, 69, 0.2);
+}
+
+.access-denied-icon i {
+    font-size: 4rem;
+    color: #dc3545;
+}
+
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+}
+
+.list-unstyled li {
+    padding-left: 0;
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .access-denied-icon {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .access-denied-icon i {
+        font-size: 3rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Плавное появление карточки
+    const card = document.querySelector('.card');
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Добавление анимации для иконок
+    const icon = document.querySelector('.access-denied-icon');
+    icon.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.1)';
+        this.style.transition = 'transform 0.3s ease';
+    });
+    
+    icon.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+    });
+    
+    // Подсветка текущей команды
+    const currentTeamCard = document.querySelector('.card .card-body');
+    if (currentTeamCard) {
+        currentTeamCard.addEventListener('mouseenter', function() {
+            this.parentElement.classList.add('shadow');
+        });
+        
+        currentTeamCard.addEventListener('mouseleave', function() {
+            this.parentElement.classList.remove('shadow');
+        });
+    }
+    
+    // Автоматическое возвращение через 30 секунд
+    let timer = 30;
+    const returnTimer = document.createElement('div');
+    returnTimer.className = 'alert alert-info mt-3';
+    returnTimer.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="bi bi-clock me-2"></i>
+            <div>
+                <span id="timer">${timer}</span> секунд до автоматического возвращения...
+            </div>
+        </div>
+    `;
+    
+    // Добавляем таймер только если у пользователя есть команда
+    {% if user.team %}
+        document.querySelector('.card-body').appendChild(returnTimer);
+        
+        const timerElement = document.getElementById('timer');
+        const countdown = setInterval(() => {
+            timer--;
+            timerElement.textContent = timer;
+            
+            if (timer <= 0) {
+                clearInterval(countdown);
+                window.location.href = "{% url 'chat:list' %}";
+            }
+        }, 1000);
+        
+        // Сброс таймера при взаимодействии
+        document.addEventListener('click', function() {
+            timer = 30;
+            timerElement.textContent = timer;
+        });
+    {% endif %}
+});
+</script>
 {% endblock %}
