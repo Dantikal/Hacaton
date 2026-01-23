@@ -100,12 +100,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 
-if DEBUG:
-    STATICFILES_DIRS = [
-        BASE_DIR / 'static',
-    ]
-else:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# ВСЕГДА определяем STATIC_ROOT и STATICFILES_DIRS
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ← ВАЖНО! УБИРАЕМ из условия
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# WhiteNoise для production
+if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = 'media/'
